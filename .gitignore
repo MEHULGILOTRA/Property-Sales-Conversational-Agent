@@ -1,0 +1,5 @@
+.env
+venv/
+setup_project.sh
+data/
+app/*.db

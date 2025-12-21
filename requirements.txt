@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+langgraph
+pydantic
+python-dotenv
+aiocsv
+aiofiles
