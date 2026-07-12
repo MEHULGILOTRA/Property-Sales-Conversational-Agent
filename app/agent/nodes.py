@@ -1,5 +1,6 @@
 import re
 from app.agent.state import AgentState
+from app.agent.utils import parse_budget
 from app.core.logger import setup_logger
 from app.services.ollama import local_llm_infer
 from app.services.lead_service import LeadService
@@ -47,9 +48,9 @@ async def extract_budget_node(state: AgentState) -> AgentState:
         user_message = state['user_query']
         logger.info(f"User Message is  : {user_message}")
 
-        match = re.search(r"\d{6,}", user_message)
-        if match:
-            state["budget"] = int(match.group())
+        budget = parse_budget(user_message)
+        if budget is not None:
+            state["budget"] = budget
             logger.info(f"Budget extracted: {state['budget']}")
         else:
             logger.info("No budget found in message")
@@ -84,7 +85,8 @@ async def select_top_projects_node(state):
 
     # A fresh search resets any half-finished booking dialogue
     state["awaiting_project_choice"] = False
-    state["pending_project_name"] = None
+    state["pending_project_names"] = None
+    state["pending_action"] = None
 
     if not projects:
         state["shortlisted_projects"] = []
@@ -275,31 +277,28 @@ async def book_project_node(state: AgentState):
         )
         return state
 
-    # Resolve the project: a pending choice from the email-capture turn wins,
-    # otherwise fuzzy-match the user's message against the shortlist.
-    chosen_project = None
-    pending_name = state.get("pending_project_name")
-    if pending_name:
-        chosen_project = next(
-            (p for p in shortlisted if p['project_name'] == pending_name), None
-        )
+    # Resolve the project(s): pending choices from the email-capture turn win,
+    # otherwise fuzzy-match the user's message against the shortlist. Several
+    # projects can be booked in one message ("book Azure Bay and Palm Vista").
+    chosen_projects = []
+    pending_names = state.get("pending_project_names") or []
+    if pending_names:
+        chosen_projects = [p for p in shortlisted if p['project_name'] in pending_names]
 
-    if not chosen_project:
-        best_match_score = 0
+    if not chosen_projects:
         threshold = 60
         for p in shortlisted:
             # token_set_ratio: partial_ratio scores generic phrases too high
             # ("site visit" vs "palm vista" = 62) and would book the wrong project
             score = fuzz.token_set_ratio(user_query.lower(), p['project_name'].lower())
-            if score > best_match_score:
-                best_match_score = score
-                chosen_project = p
+            logger.info(f"Fuzzy match score: {score}% for project: {p['project_name']}")
+            if score >= threshold:
+                chosen_projects.append(p)
 
-        logger.info(f"Fuzzy match score: {best_match_score}% for project: {chosen_project['project_name'] if chosen_project else 'None'}")
-
-        if not chosen_project or best_match_score < threshold:
+        if not chosen_projects:
             names = format_project_lines(shortlisted)
             state["awaiting_project_choice"] = True
+            state["pending_action"] = "book"
             state["reply"] = (
                 f"{names}\nWhich of the top projects would you like to book? "
                 "Please let me know the name."
@@ -307,6 +306,7 @@ async def book_project_node(state: AgentState):
             return state
 
     state["awaiting_project_choice"] = False
+    chosen_names = [p['project_name'] for p in chosen_projects]
 
     # Email gate: capture from state or the current message, otherwise ask.
     email = state.get("user_email")
@@ -318,49 +318,135 @@ async def book_project_node(state: AgentState):
 
     if not email:
         state["awaiting_email"] = True
-        state["pending_project_name"] = chosen_project['project_name']
+        state["pending_project_names"] = chosen_names
+        state["pending_action"] = "book"
         state["reply"] = (
-            f"Great choice — **{chosen_project['project_name']}**! "
+            f"Great choice — **{', '.join(chosen_names)}**! "
             "Please share your email address so I can register your site visit."
         )
         return state
 
     try:
         async with AsyncSessionLocal() as session:
-                lead_service = LeadService(session)
-                lead = await lead_service.create_or_update_lead(
-                    email=email,
-                    preferences={"city": state.get("city"), "budget": state.get("budget")}
-                )
-                logger.info("Added Lead")
-                booking_tool = BookingTool(session)
+            lead_service = LeadService(session)
+            lead = await lead_service.create_or_update_lead(
+                email=email,
+                preferences={"city": state.get("city"), "budget": state.get("budget")}
+            )
+            logger.info("Added Lead")
+            booking_tool = BookingTool(session)
+
+            confirmations = []
+            for project in chosen_projects:
                 booking_result = await booking_tool.run({
                     "lead_id": lead.id,
-                    "project_id": chosen_project['id'],
-                    "city": chosen_project.get('city', state.get('city'))
+                    "project_id": project['id'],
+                    "city": project.get('city', state.get('city'))
                 })
-
                 if booking_result["status"] == "success":
-                    logger.info("Booking is saved!!")
-                    broker_info = {
-                        "name": "Mehul Gilotra",
-                        "phone": "+11-111-1111",
-                        "email": "mehul.gilotra@silverland.com"
-                    }
-                    msg = (f"✅ Booking Request Received for **{chosen_project['project_name']}**!\n\n"
-                        f"👤 **Your Broker:** {broker_info['name']}\n"
-                        f"📞 **Contact:** {broker_info['phone']}\n"
-                        f"📧 Confirmation ID: {booking_result['booking_id']}. Site visit scheduled.")
-                    state["reply"] = msg
-                    state["selected_project_name"] = chosen_project['project_name']
-                    state["booking_confirmed"] = True
-                    state["awaiting_email"] = False
-                    state["pending_project_name"] = None
-                else:
-                    state["reply"] = "I had trouble saving your booking. Please try again."
+                    confirmations.append(
+                        f"**{project['project_name']}** (Confirmation ID: {booking_result['booking_id']})"
+                    )
+
+            if confirmations:
+                logger.info(f"Bookings saved: {len(confirmations)}")
+                broker_info = {
+                    "name": "Mehul Gilotra",
+                    "phone": "+11-111-1111",
+                    "email": "mehul.gilotra@silverland.com"
+                }
+                msg = ("✅ Booking Request Received for:\n" + "\n".join(f"- {c}" for c in confirmations)
+                       + f"\n\n👤 **Your Broker:** {broker_info['name']}\n"
+                       f"📞 **Contact:** {broker_info['phone']}\n"
+                       "Site visit scheduled.")
+                state["reply"] = msg
+                state["selected_project_name"] = chosen_names[0]
+                state["booking_confirmed"] = True
+                state["awaiting_email"] = False
+                state["pending_project_names"] = None
+                state["pending_action"] = None
+            else:
+                state["reply"] = "I had trouble saving your booking. Please try again."
 
     except Exception as e:
         logger.error(f"Error in book_project_node: {e}")
         state["reply"] = "Something went wrong with the booking system."
+
+    return state
+
+
+async def cancel_booking_node(state: AgentState):
+    logger.info("NODE : Cancel Booking Node")
+
+    user_query = state.get("user_query", "")
+
+    # Email identifies whose bookings to cancel — from state or this message.
+    email = state.get("user_email")
+    if not email:
+        match = re.search(EMAIL_PATTERN, user_query)
+        if match:
+            email = match.group(0)
+            state["user_email"] = email
+
+    if not email:
+        state["awaiting_email"] = True
+        state["pending_action"] = "cancel"
+        state["reply"] = (
+            "I can help with that. Please share the email address you booked with, "
+            "so I can look up your site visits."
+        )
+        return state
+
+    state["awaiting_email"] = False
+
+    try:
+        async with AsyncSessionLocal() as session:
+            lead_service = LeadService(session)
+            lead = await lead_service.get_lead_by_email(email)
+            booking_tool = BookingTool(session)
+            bookings = await booking_tool.list_for_lead(lead.id) if lead else []
+
+            if not bookings:
+                state["pending_action"] = None
+                state["awaiting_project_choice"] = False
+                state["reply"] = f"I couldn't find any site-visit bookings under {email}."
+                return state
+
+            # Match the mentioned project(s) among this lead's bookings.
+            threshold = 60
+            to_cancel = [
+                b for b in bookings
+                if fuzz.token_set_ratio(user_query.lower(), b["project_name"].lower()) >= threshold
+            ]
+
+            if not to_cancel and len(bookings) == 1:
+                to_cancel = bookings
+
+            if not to_cancel:
+                names = "\n".join(
+                    f"- {b['project_name']} (booked {b['created_at']})" for b in bookings
+                )
+                state["awaiting_project_choice"] = True
+                state["pending_action"] = "cancel"
+                state["reply"] = (
+                    f"You have these site visits booked:\n{names}\n"
+                    "Which one would you like to cancel?"
+                )
+                return state
+
+            for b in to_cancel:
+                await booking_tool.cancel(b["booking_id"])
+
+            cancelled_names = ", ".join(b["project_name"] for b in to_cancel)
+            state["awaiting_project_choice"] = False
+            state["pending_action"] = None
+            state["reply"] = (
+                f"🗑️ Your site visit for **{cancelled_names}** has been cancelled. "
+                "If you'd like to reschedule, just ask me to book a new visit."
+            )
+
+    except Exception as e:
+        logger.error(f"Error in cancel_booking_node: {e}")
+        state["reply"] = "Something went wrong while cancelling. Please try again."
 
     return state

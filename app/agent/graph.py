@@ -11,7 +11,8 @@ from app.agent.nodes import (
     select_top_projects_node,
     summarize_projects_node,
     project_qa_node,
-    book_project_node
+    book_project_node,
+    cancel_booking_node
 )
 from app.agent.router import router
 from app.tools.sql_tool import SQLSearchTool
@@ -57,6 +58,7 @@ async def build_graph():
             "summarize_projects": summarize_projects_node,
             "present": present_projects_node,
             "book_project": book_project_node,
+            "cancel_booking": cancel_booking_node,
         }
         for name, fn in nodes.items():
             graph.add_node(name, timed(name, fn))
@@ -72,6 +74,7 @@ async def build_graph():
                 "not_relevant": "not_relevant",
                 "project_qa": "project_qa",
                 "book_project": "book_project",
+                "cancel_booking": "cancel_booking",
                 "sql_search": "sql_search",
             }
         )
@@ -88,6 +91,7 @@ async def build_graph():
         graph.add_edge("summarize_projects", "present")
         graph.add_edge("present", END)
         graph.add_edge("book_project", END)
+        graph.add_edge("cancel_booking", END)
 
         app = graph.compile(checkpointer=memory)
         logger.info("LangGraph compiled successfully")

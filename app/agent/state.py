@@ -53,4 +53,5 @@ class AgentState(TypedDict):
     user_email: Annotated[Optional[str], merge_info]
     awaiting_email: Optional[bool]
     awaiting_project_choice: Optional[bool]
-    pending_project_name: Optional[str]
+    pending_project_names: Optional[List[str]]
+    pending_action: Optional[str]  # "book" | "cancel" — which flow a follow-up belongs to
