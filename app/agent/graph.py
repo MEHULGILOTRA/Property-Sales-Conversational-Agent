@@ -1,3 +1,5 @@
+import time
+
 from langgraph.graph import StateGraph, END
 from app.agent.state import AgentState
 from app.agent.nodes import (
@@ -25,6 +27,18 @@ async def sql_search_node(state: AgentState):
         sql_tool = SQLSearchTool(db)
         return await sql_tool.run(state)
 
+
+def timed(name, node_fn):
+    """Wrap a node so its execution time lands in the logs as a metric."""
+    async def wrapper(state):
+        start = time.perf_counter()
+        try:
+            return await node_fn(state)
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.info(f"metric node={name} duration_ms={duration_ms:.0f}")
+    return wrapper
+
 async def build_graph():
     try:
         memory = MemorySaver()
@@ -32,16 +46,20 @@ async def build_graph():
 
         graph = StateGraph(AgentState)
 
-        graph.add_node("greet", greet_node)
-        graph.add_node("extract_budget", extract_budget_node)
-        graph.add_node("ask_budget", ask_budget_node)
-        graph.add_node("not_relevant", not_relevant_node)
-        graph.add_node("project_qa", project_qa_node)
-        graph.add_node("sql_search", sql_search_node)
-        graph.add_node("select_top", select_top_projects_node)
-        graph.add_node("summarize_projects", summarize_projects_node)
-        graph.add_node("present", present_projects_node)
-        graph.add_node("book_project", book_project_node)
+        nodes = {
+            "greet": greet_node,
+            "extract_budget": extract_budget_node,
+            "ask_budget": ask_budget_node,
+            "not_relevant": not_relevant_node,
+            "project_qa": project_qa_node,
+            "sql_search": sql_search_node,
+            "select_top": select_top_projects_node,
+            "summarize_projects": summarize_projects_node,
+            "present": present_projects_node,
+            "book_project": book_project_node,
+        }
+        for name, fn in nodes.items():
+            graph.add_node(name, timed(name, fn))
 
         graph.set_entry_point("greet")
 
