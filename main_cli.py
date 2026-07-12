@@ -17,13 +17,6 @@ async def run_cli():
         if user_input.lower() in ["exit", "quit", "q"]:
             print("Goodbye! 👋")
             break
-        initial_state = {
-            "messages": [{"role": "user", "content": user_input}],
-            "projects": [],
-            "shortlisted_projects": [],
-            "summary": ""
-        }
-
         try:
             final_state = await app.ainvoke({"messages": [("user", user_input)]}, config=config)
             # print(f"Final State is : {final_state}")

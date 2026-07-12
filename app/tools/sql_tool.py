@@ -1,9 +1,8 @@
-from typing import Dict, Any, List
 from app.tools.base import BaseTool
 from app.db.models import Project
 from app.core.logger import setup_logger
 import re
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_
 logger = setup_logger(__name__)
 
 COUNTRY_MAPPING = {
@@ -29,8 +28,9 @@ class SQLSearchTool(BaseTool):
     async def run(self, state):
         try:
             logger.info("SQL search tool invoked")
-            #user_query = state["messages"][0]["content"].lower().strip()
-            user_query = state['user_query']
+            # Lowercase: city/country/feature matching below compares lowercase
+            # DB values against this string.
+            user_query = state['user_query'].lower().strip()
 
             budget = state.get("budget")
             if not budget:
@@ -72,28 +72,30 @@ class SQLSearchTool(BaseTool):
             query = select(Project).where(Project.price_usd <= (budget * 1.3))
             query = query.order_by(Project.price_usd.desc())
 
+            # State keeps scalars (first match) — downstream nodes read city/country
+            # as single values; the full lists are only used for the SQL filters.
             if matched_cities and matched_countries:
                 logger.info(f"Extracted Country: {matched_countries}, Extracted City: {matched_cities}")
                 query = query.where(
                     (Project.city.in_(matched_cities)) | (Project.country.in_(matched_countries))
                 )
-                state['city'] = matched_cities
-                state['country'] = matched_countries
+                state['city'] = matched_cities[0]
+                state['country'] = matched_countries[0]
 
             elif matched_cities:
                 logger.info(f"Extracted City: {matched_cities}")
-                state['city'] = matched_cities
+                state['city'] = matched_cities[0]
                 query = query.where(Project.city.in_(matched_cities))
 
             elif matched_countries:
                 logger.info(f"Extracted Country: {matched_countries}")
                 query = query.where(Project.country.in_(matched_countries))
-                state['country'] = matched_countries
+                state['country'] = matched_countries[0]
 
             if matched_bhks:
                 logger.info(f"Extracted BHK: {matched_bhks}")
                 query = query.filter(Project.bedrooms.in_(matched_bhks))
-                state['bhk'] = matched_bhks
+                state['bhk'] = matched_bhks[0]
             elif requested_bhk and requested_bhk > 0:
                 logger.info(f"Requested {requested_bhk} BHK not found. Searching for lower options...")
                 avail_stmt = select(Project.bedrooms).distinct().where(Project.price_usd <= (budget * 1.3))
@@ -112,7 +114,7 @@ class SQLSearchTool(BaseTool):
                         best_alt = max(lower_bhks)
                         logger.info(f"Best Alternative for City {matched_cities} is : {best_alt}")
                         query = query.where(Project.bedrooms == best_alt)
-                        state['bhk'] = matched_bhks
+                        state['bhk'] = best_alt
                     else:
                         query = query.where(Project.bedrooms == -1)
                         

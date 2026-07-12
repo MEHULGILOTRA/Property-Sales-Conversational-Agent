@@ -1,7 +1,6 @@
-import csv
+import os
+import sys
 from datetime import datetime
-from app.db.database import engine, Base
-from app.db.models import Project, Lead, VisitBooking
 from app.core.logger import setup_logger
 import asyncio
 import aiofiles
@@ -12,7 +11,9 @@ from app.db.models import Project
 
 logger = setup_logger(__name__)
 
-CSV_PATH = "/Users/mehulgilotra/Desktop/Projects/Property Sales Agent/data/Challenge.csv"
+# CSV path: CLI arg > SEED_CSV_PATH env var > repo-relative default
+_DEFAULT_CSV = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "Challenge.csv")
+CSV_PATH = sys.argv[1] if len(sys.argv) > 1 else os.getenv("SEED_CSV_PATH", _DEFAULT_CSV)
 
 async def main():
     try:
@@ -87,8 +88,6 @@ async def seed_projects():
         except Exception as e:
             await db.rollback()
             print(f"❌ Error during seeding: {e}")
-        finally:
-            db.close()
 
 
 if __name__ == "__main__":

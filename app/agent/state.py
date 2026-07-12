@@ -37,11 +37,20 @@ class AgentState(TypedDict):
     city: Annotated[Optional[str], merge_info]
     bhk: Annotated[Optional[int], merge_info]
 
+    country: Annotated[Optional[str], merge_info]
+
     projects: List[Dict]
     response : str
     summary : str
     reply : str
     selected_project: Optional[str]
     user_contact: Optional[str]
-    booking_confirmed: bool = False
+    booking_confirmed: bool
     selected_project_name: Optional[str]
+
+    # Booking email-capture flow. Deliberately NOT annotated with merge_info:
+    # they must be clearable (last-write-wins) once the booking completes.
+    user_email: Annotated[Optional[str], merge_info]
+    awaiting_email: Optional[bool]
+    awaiting_project_choice: Optional[bool]
+    pending_project_name: Optional[str]

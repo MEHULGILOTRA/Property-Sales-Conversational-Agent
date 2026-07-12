@@ -4,15 +4,7 @@ import re
 
 logger = setup_logger(__name__)
 
-keywords = [
-    "Hello",
-    "Hi",
-    "Hey",
-    "What can you do?",
-    "hello",
-    "hey",
-    "hi"
-]
+greeting_keywords = ["hello", "hi", "hey"]
 
 def router(state: AgentState) -> str:
     try:
@@ -20,16 +12,26 @@ def router(state: AgentState) -> str:
         query = state.get("user_query", "").lower()
         shortlisted = state.get("shortlisted_projects", [])
         booking_keywords = ["book", "visit", "schedule", "interested", "buy"]
-        
 
+        # Mid-booking: the user was asked for their email — route the reply back.
+        if state.get("awaiting_email"):
+            logger.info("Awaiting email — routing back to booking.")
+            return "book_project"
 
-        if any(word in query for word in keywords):
-            logger.info("Query identified as not relevant.")
+        query_words = re.findall(r"[a-z]+", query)
+        if any(word in query_words for word in greeting_keywords) or "what can you do" in query:
+            logger.info("Query identified as greeting / not relevant.")
             return "not_relevant"
-        
+
         match = re.search(r"\d{6,}", query)
         if match:
             return "extract_budget"
+
+        # Mid-booking: the user was asked which project to book — a plain
+        # project-name reply (no new budget/greeting) continues the booking.
+        if state.get("awaiting_project_choice") and shortlisted:
+            logger.info("Awaiting project choice — routing back to booking.")
+            return "book_project"
 
 
         if any(word in query for word in booking_keywords):

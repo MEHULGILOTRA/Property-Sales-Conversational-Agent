@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update
 from app.db.models import Lead
 
 import logging
@@ -28,8 +27,10 @@ class LeadService:
                 logger.info(f"Existing lead found for {email}. Updating preferences.")
                 existing_lead.preferences = preferences
                 # Optionally update names if provided
-                if first_name: existing_lead.first_name = first_name
-                if last_name: existing_lead.last_name = last_name
+                if first_name:
+                    existing_lead.first_name = first_name
+                if last_name:
+                    existing_lead.last_name = last_name
                 
                 await self.db.commit()
                 await self.db.refresh(existing_lead)
