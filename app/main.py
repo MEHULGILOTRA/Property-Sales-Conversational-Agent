@@ -1,7 +1,9 @@
+import os
 import time
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 
 from app.api.routes.conversations import router as conversation_router
 from app.api.routes.chat import router as chat_router
@@ -31,6 +33,13 @@ async def request_context(request: Request, call_next):
 app.include_router(conversation_router)
 app.include_router(chat_router)
 app.include_router(health_router)
+
+_STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+
+@app.get("/", include_in_schema=False)
+async def chat_ui():
+    return FileResponse(os.path.join(_STATIC_DIR, "index.html"))
 
 # RUN LIKE THIS -
 # uvicorn app.main:app --reload

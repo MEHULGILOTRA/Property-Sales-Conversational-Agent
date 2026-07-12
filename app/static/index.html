@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silver Land Properties — Assistant</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1c2333; --muted: #6b7280;
+    --accent: #0f6b5c; --accent-soft: #e3f2ee; --border: #e2e5ea;
+    --user-bubble: #0f6b5c; --user-text: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10141c; --panel: #1a202c; --text: #e8eaf0; --muted: #9aa3b2;
+      --accent: #35b39a; --accent-soft: #143530; --border: #2a3242;
+      --user-bubble: #35b39a; --user-text: #08211c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg);
+    color: var(--text); height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    padding: 14px 22px; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  header .logo {
+    width: 36px; height: 36px; border-radius: 10px; background: var(--accent);
+    color: #fff; display: grid; place-items: center; font-size: 18px;
+  }
+  header h1 { font-size: 16px; }
+  header p { font-size: 12px; color: var(--muted); }
+  #status { margin-left: auto; font-size: 12px; color: var(--muted); }
+  #chat {
+    flex: 1; overflow-y: auto; padding: 22px; display: flex;
+    flex-direction: column; gap: 12px; max-width: 860px; width: 100%; margin: 0 auto;
+  }
+  .msg { max-width: 78%; padding: 11px 15px; border-radius: 14px; font-size: 14px;
+         line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--user-bubble); color: var(--user-text);
+              border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--border);
+             border-bottom-left-radius: 4px; }
+  .msg.bot strong { color: var(--accent); }
+  .typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding: 4px 8px; }
+  form {
+    display: flex; gap: 10px; padding: 16px 22px 20px; max-width: 860px;
+    width: 100%; margin: 0 auto;
+  }
+  input {
+    flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 14px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    padding: 12px 22px; border-radius: 12px; border: none; background: var(--accent);
+    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .hints { max-width: 860px; margin: 0 auto; padding: 0 22px 10px; display: flex;
+           gap: 8px; flex-wrap: wrap; }
+  .hints span {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--accent-soft); color: var(--accent); border: 1px solid transparent;
+  }
+  .hints span:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">🏠</div>
+    <div>
+      <h1>Silver Land Properties</h1>
+      <p>AI property assistant — search, ask, book a site visit</p>
+    </div>
+    <span id="status"></span>
+  </header>
+
+  <div id="chat"></div>
+
+  <div class="hints" id="hints">
+    <span>I want a 3 bhk in Dubai under 800000</span>
+    <span>What amenities do they have?</span>
+    <span>Book a site visit</span>
+    <span>Cancel my booking</span>
+  </div>
+
+  <form id="form">
+    <input id="input" placeholder="Type a message…" autocomplete="off" autofocus>
+    <button id="send" type="submit">Send</button>
+  </form>
+
+<script>
+const chat = document.getElementById("chat");
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+const statusEl = document.getElementById("status");
+let conversationId = null;
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function addMsg(text, who) {
+  const div = document.createElement("div");
+  div.className = "msg " + who;
+  // minimal markdown: **bold** only, everything else escaped
+  div.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+async function ensureConversation() {
+  if (conversationId) return conversationId;
+  const res = await fetch("/conversations", { method: "POST" });
+  conversationId = (await res.json()).conversation_id;
+  return conversationId;
+}
+
+async function sendMessage(text) {
+  addMsg(text, "user");
+  input.value = "";
+  send.disabled = true;
+  const typing = document.createElement("div");
+  typing.className = "typing";
+  typing.textContent = "Assistant is thinking…";
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
+  try {
+    const id = await ensureConversation();
+    const res = await fetch("/agents/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_id: id, message: text })
+    });
+    typing.remove();
+    if (res.status === 429) {
+      addMsg("You're sending messages too quickly — give me a few seconds.", "bot");
+      return;
+    }
+    const data = await res.json();
+    addMsg(data.reply || "Sorry, something went wrong.", "bot");
+  } catch (e) {
+    typing.remove();
+    addMsg("Couldn't reach the server. Is the API running?", "bot");
+  } finally {
+    send.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (text) sendMessage(text);
+});
+
+document.getElementById("hints").addEventListener("click", (e) => {
+  if (e.target.tagName === "SPAN") sendMessage(e.target.textContent);
+});
+
+fetch("/health").then(r => r.json()).then(h => {
+  statusEl.textContent = h.llm === "ok"
+    ? "● LLM connected"
+    : "● LLM offline — using fallback replies";
+  statusEl.style.color = h.llm === "ok" ? "#2e9e6b" : "#c98a1b";
+}).catch(() => { statusEl.textContent = ""; });
+
+addMsg("Hello! I'm the Silver Land Properties assistant. Tell me your budget and preferred city, and I'll find matching properties. 🏙️", "bot");
+</script>
+</body>
+</html>
