@@ -2,4 +2,11 @@
 venv/
 setup_project.sh
 data/
-app/*.db
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# The demo DB at app/db/property_sales.db is deliberately committed;
+# ignore any other stray local database files.
+/property_sales.db
