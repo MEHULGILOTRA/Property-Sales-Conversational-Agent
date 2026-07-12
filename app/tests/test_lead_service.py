@@ -1,54 +1,34 @@
-import asyncio
-import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from sqlalchemy import select
 
-from app.db.models import Lead, Base 
+from app.db.models import Lead
 from app.services.lead_service import LeadService
 
-load_dotenv()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATABASE_URL = f"sqlite+aiosqlite:///{os.path.join(BASE_DIR, 'property_sales.db')}"
-
-engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-async def test_run():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    async with AsyncSessionLocal() as session:
+async def test_create_lead(test_db):
+    async with test_db() as session:
         service = LeadService(session)
-        
-        test_email = "test_user@example.com"
-        test_prefs = {"city": "Dubai", "bhk": 3}
-        
-        print(f"\n--- Testing Create Lead ---")
         lead = await service.create_or_update_lead(
-            email=test_email, 
-            preferences=test_prefs,
+            email="new.user@example.com",
+            preferences={"city": "Dubai", "budget": 800000},
             first_name="Test",
-            last_name="Subject"
+            last_name="User",
         )
+        assert lead.id is not None
+        assert lead.email == "new.user@example.com"
+        assert lead.preferences == {"city": "Dubai", "budget": 800000}
 
-        print(f"Result: Created/Retrieved Lead ID {lead.id} for {lead.email}")
 
-        print(f"\n--- Testing Update Lead ---")
-        updated_prefs = {"city": "Phuket", "bhk": 5}
-        updated_lead = await service.create_or_update_lead(
-            email=test_email,
-            preferences=updated_prefs
+async def test_update_existing_lead_by_email(test_db):
+    async with test_db() as session:
+        service = LeadService(session)
+        first = await service.create_or_update_lead(
+            email="repeat@example.com", preferences={"city": "Dubai"}
         )
-        print(f"Result: Updated Preferences to {updated_lead.preferences}")
-    
-    await engine.dispose()
+        second = await service.create_or_update_lead(
+            email="repeat@example.com", preferences={"city": "Phuket"}
+        )
+        assert second.id == first.id
+        assert second.preferences == {"city": "Phuket"}
 
-if __name__ == "__main__":
-    try:
-        asyncio.run(test_run())
-    except Exception as e:
-        print(f"❌ Test Failed: {e}")
+        result = await session.execute(select(Lead).where(Lead.email == "repeat@example.com"))
+        assert len(result.scalars().all()) == 1
