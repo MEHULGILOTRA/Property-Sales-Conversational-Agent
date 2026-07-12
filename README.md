@@ -7,6 +7,8 @@ feature preferences in natural language, searches a property database, shortlist
 matches with an LLM, and walks the user through booking a site visit — capturing their
 email and creating a lead along the way.
 
+![Demo](docs/demo.gif)
+
 **👉 [See it in action — full demo walkthrough](DEMO.md)**
 
 ## How it works
@@ -22,6 +24,14 @@ greet (entry)
              ──► book_project (choose project(s) → capture email → create lead + bookings) ─► END
              ──► cancel_booking (lookup by email → cancel by name) ─► END
 ```
+
+**Booking flow — how memory carries a multi-turn booking:**
+
+![Booking flow](docs/booking-flow.svg)
+
+**Data model:**
+
+![Data model](docs/data-model.svg)
 
 - **Memory**: each `conversation_id` maps to a LangGraph checkpointer thread, so budget,
   city, shortlist and booking progress persist across turns.
@@ -109,6 +119,8 @@ A `render.yaml` blueprint is included for [Render](https://render.com) — point
 - [docs/technical-writeup.md](docs/technical-writeup.md) — how the conversation-memory
   bug was found and fixed
 - [docs/architecture.svg](docs/architecture.svg) — architecture diagram
+- [docs/booking-flow.svg](docs/booking-flow.svg) — booking sequence diagram
+- [docs/data-model.svg](docs/data-model.svg) — database ERD
 
 ## License
 

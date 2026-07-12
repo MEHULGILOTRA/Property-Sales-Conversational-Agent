@@ -238,6 +238,15 @@ async def project_qa_node(state: AgentState):
     """
     
     response = local_llm_infer(prompt)
+    if not response:
+        # LLM unavailable — deterministic fallback straight from the project data
+        def clean(value):
+            return re.sub(r"[\[\]'\"]", "", str(value or "n/a")).strip() or "n/a"
+        response = "Here's what I have on the shortlisted properties:\n" + "\n".join(
+            f"- **{p['project_name']}**: features — {clean(p.get('features'))}; "
+            f"facilities — {clean(p.get('facilities'))}"
+            for p in projects
+        )
     state["reply"] = response
     return state
 

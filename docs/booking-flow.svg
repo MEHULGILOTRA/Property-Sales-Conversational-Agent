@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 640" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrback" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f6b5c"/>
+    </marker>
+  </defs>
+  <rect width="920" height="640" fill="#f8fafc" rx="12"/>
+  <text x="460" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">Booking Flow — multi-turn with email capture</text>
+
+  <!-- lifelines -->
+  <g font-size="13" font-weight="600" text-anchor="middle">
+    <rect x="40"  y="55" width="130" height="34" rx="8" fill="#e0f2fe" stroke="#0284c7"/><text x="105" y="77" fill="#075985">User</text>
+    <rect x="255" y="55" width="150" height="34" rx="8" fill="#ede9fe" stroke="#7c3aed"/><text x="330" y="77" fill="#5b21b6">FastAPI /agents/chat</text>
+    <rect x="490" y="55" width="140" height="34" rx="8" fill="#ecfdf5" stroke="#059669"/><text x="560" y="77" fill="#065f46">Router</text>
+    <rect x="700" y="55" width="180" height="34" rx="8" fill="#fef3c7" stroke="#d97706"/><text x="790" y="77" fill="#92400e">Nodes + SQLite</text>
+  </g>
+  <g stroke="#cbd5e1" stroke-dasharray="4 4">
+    <line x1="105" y1="89" x2="105" y2="600"/>
+    <line x1="330" y1="89" x2="330" y2="600"/>
+    <line x1="560" y1="89" x2="560" y2="600"/>
+    <line x1="790" y1="89" x2="790" y2="600"/>
+  </g>
+
+  <!-- turn 1: search -->
+  <g font-size="11.5">
+    <text x="115" y="118" fill="#334155">"3 bhk in Dubai under 800000"</text>
+    <line x1="105" y1="124" x2="325" y2="124" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="340" y="140" fill="#334155">thread_id = conversation_id</text>
+    <line x1="330" y1="146" x2="555" y2="146" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="162" fill="#334155">intent: extract_budget → sql_search</text>
+    <line x1="560" y1="168" x2="785" y2="168" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="192" fill="#0f6b5c">shortlist (top 3) + summary</text>
+    <line x1="785" y1="198" x2="110" y2="198" stroke="#0f6b5c" marker-end="url(#arrback)"/>
+  </g>
+  <rect x="60" y="212" width="820" height="26" rx="6" fill="#ecfdf5"/>
+  <text x="460" y="229" text-anchor="middle" font-size="11" fill="#065f46">checkpointer saves: budget=800000, city=Dubai, shortlisted_projects=[…]</text>
+
+  <!-- turn 2: booking intent -->
+  <g font-size="11.5">
+    <text x="115" y="264" fill="#334155">"book Downtown Dubai Residences"</text>
+    <line x1="105" y1="270" x2="325" y2="270" stroke="#334155" marker-end="url(#arr)"/>
+    <line x1="330" y1="292" x2="555" y2="292" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="286" fill="#334155">intent: book_project (fuzzy match 100%)</text>
+    <line x1="560" y1="314" x2="785" y2="314" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="334" fill="#d97706">no email in state → ask for it</text>
+    <line x1="785" y1="340" x2="110" y2="340" stroke="#0f6b5c" marker-end="url(#arrback)"/>
+    <text x="115" y="358" fill="#0f6b5c">"Please share your email address"</text>
+  </g>
+  <rect x="60" y="368" width="820" height="26" rx="6" fill="#fef3c7"/>
+  <text x="460" y="385" text-anchor="middle" font-size="11" fill="#92400e">checkpointer saves: awaiting_email=True, pending_project_names=["Downtown Dubai Residences"]</text>
+
+  <!-- turn 3: email -->
+  <g font-size="11.5">
+    <text x="115" y="420" fill="#334155">"buyer@example.com"</text>
+    <line x1="105" y1="426" x2="325" y2="426" stroke="#334155" marker-end="url(#arr)"/>
+    <line x1="330" y1="448" x2="555" y2="448" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="442" fill="#334155">awaiting_email → resume booking</text>
+    <line x1="560" y1="470" x2="785" y2="470" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="490" fill="#d97706">create Lead + VisitBooking rows</text>
+    <line x1="785" y1="496" x2="110" y2="496" stroke="#0f6b5c" marker-end="url(#arrback)"/>
+    <text x="115" y="514" fill="#0f6b5c">"✓ Booking confirmed — ID 1"</text>
+  </g>
+
+  <!-- turn 4: cancel -->
+  <g font-size="11.5">
+    <text x="115" y="546" fill="#334155">"cancel my visit"</text>
+    <line x1="105" y1="552" x2="325" y2="552" stroke="#334155" marker-end="url(#arr)"/>
+    <line x1="330" y1="568" x2="555" y2="568" stroke="#334155" marker-end="url(#arr)"/>
+    <line x1="560" y1="584" x2="785" y2="584" stroke="#334155" marker-end="url(#arr)"/>
+    <text x="570" y="580" fill="#334155">cancel_booking: lookup by saved email</text>
+    <line x1="785" y1="598" x2="110" y2="598" stroke="#0f6b5c" marker-end="url(#arrback)"/>
+    <text x="115" y="616" fill="#0f6b5c">"Your site visit has been cancelled"</text>
+  </g>
+</svg>

@@ -1,11 +1,26 @@
+# Secrets & environment
 .env
 venv/
-setup_project.sh
-data/
+
+# Local tooling / IDE — never published
+.claude/
+.vscode/
+.idea/
+.DS_Store
+
+# Build / test caches
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+
+# Local-only data & scripts
+data/
+setup_project.sh
+*.log
+
+# Marketing/demo material generated locally (upload to freelancer platforms manually)
+demo-assets/
 
 # The demo DB at app/db/property_sales.db is deliberately committed;
 # ignore any other stray local database files.
