@@ -7,7 +7,11 @@ feature preferences in natural language, searches a property database, shortlist
 matches with an LLM, and walks the user through booking a site visit — capturing their
 email and creating a lead along the way.
 
+**👉 [See it in action — full demo walkthrough](DEMO.md)**
+
 ## How it works
+
+![Architecture](docs/architecture.svg)
 
 ```
 greet (entry)
@@ -15,7 +19,8 @@ greet (entry)
              ──► not_relevant ───────────────────────────► END
              ──► project_qa (LLM answers from shortlist) ► END
              ──► extract_budget ─► sql_search ─► select_top ─► summarize ─► present ─► END
-             ──► book_project (choose project → capture email → create lead + booking) ─► END
+             ──► book_project (choose project(s) → capture email → create lead + bookings) ─► END
+             ──► cancel_booking (lookup by email → cancel by name) ─► END
 ```
 
 - **Memory**: each `conversation_id` maps to a LangGraph checkpointer thread, so budget,
@@ -43,11 +48,14 @@ cp .env.example .env   # optional — defaults work out of the box
 python main_cli.py
 ```
 
-**API server:**
+**Web UI + API server:**
 
 ```bash
 uvicorn app.main:app --reload
 ```
+
+Then open <http://127.0.0.1:8000/> for the built-in chat UI (no build step —
+plain HTML/JS served by FastAPI).
 
 ```bash
 # 1. Search
@@ -94,6 +102,13 @@ Re-seed the database from a CSV: `python -m app.db.seed path/to/data.csv`
 
 A `render.yaml` blueprint is included for [Render](https://render.com) — point
 `LLM_BASE_URL`/`LLM_API_KEY` at a hosted OpenAI-compatible provider and deploy.
+
+## More
+
+- [DEMO.md](DEMO.md) — full walkthrough with real transcripts
+- [docs/technical-writeup.md](docs/technical-writeup.md) — how the conversation-memory
+  bug was found and fixed
+- [docs/architecture.svg](docs/architecture.svg) — architecture diagram
 
 ## License
 
