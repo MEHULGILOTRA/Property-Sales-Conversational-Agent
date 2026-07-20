@@ -4,7 +4,7 @@ import requests
 from fastapi import APIRouter, Response
 from sqlalchemy import text
 
-from app.config import LLM_PROVIDER, LLM_BASE_URL
+from app.config import LLM_PROVIDER, LLM_BASE_URL, LLM_API_KEY
 from app.db.database import AsyncSessionLocal
 
 router = APIRouter()
@@ -21,11 +21,14 @@ async def check_db() -> str:
 
 def _probe_llm() -> str:
     try:
+        headers = {}
         if LLM_PROVIDER == "openai":
             url = f"{LLM_BASE_URL.rstrip('/')}/v1/models"
+            if LLM_API_KEY:
+                headers["Authorization"] = f"Bearer {LLM_API_KEY}"
         else:
             url = LLM_BASE_URL  # Ollama root answers "Ollama is running"
-        res = requests.get(url, timeout=5)
+        res = requests.get(url, headers=headers, timeout=5)
         res.raise_for_status()
         return "ok"
     except Exception:
