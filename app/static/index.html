@@ -2,132 +2,428 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Silver Land Properties — Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Silver Land Properties — AI Property Concierge</title>
+<meta name="description" content="Chat with an AI property concierge: search listings by budget and city, compare amenities, and book a site visit — all in one conversation.">
+<meta property="og:title" content="Silver Land Properties — AI Property Concierge">
+<meta property="og:description" content="Search listings by budget and city, compare amenities, and book a site visit — all in one conversation.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://property-sales-agent.onrender.com">
+<meta name="theme-color" content="#14594a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f5f7; --panel: #ffffff; --text: #1c2333; --muted: #6b7280;
-    --accent: #0f6b5c; --accent-soft: #e3f2ee; --border: #e2e5ea;
-    --user-bubble: #0f6b5c; --user-text: #ffffff;
+    --bg: #f3f3ee; --panel: #ffffff; --text: #1a2420; --muted: #67716c;
+    --accent: #14594a; --accent-ink: #ffffff; --accent-soft: #e4efeb;
+    --border: #e0e2dc; --hairline: #d2d5cd;
+    --user-bubble: #14594a; --user-text: #f2f7f5;
+    --ok: #2e9e6b; --warn: #c98a1b;
+    --shadow: 0 1px 2px rgba(26, 36, 32, .06), 0 8px 24px -12px rgba(26, 36, 32, .12);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #10141c; --panel: #1a202c; --text: #e8eaf0; --muted: #9aa3b2;
-      --accent: #35b39a; --accent-soft: #143530; --border: #2a3242;
-      --user-bubble: #35b39a; --user-text: #08211c;
+      --bg: #0d1512; --panel: #16211c; --text: #e6ebe8; --muted: #8fa098;
+      --accent: #4cc2a4; --accent-ink: #06231b; --accent-soft: #16332b;
+      --border: #24322b; --hairline: #2c3b34;
+      --user-bubble: #1d6b58; --user-text: #eaf5f1;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
     }
   }
+  :root[data-theme="light"] {
+    --bg: #f3f3ee; --panel: #ffffff; --text: #1a2420; --muted: #67716c;
+    --accent: #14594a; --accent-ink: #ffffff; --accent-soft: #e4efeb;
+    --border: #e0e2dc; --hairline: #d2d5cd;
+    --user-bubble: #14594a; --user-text: #f2f7f5;
+    --shadow: 0 1px 2px rgba(26, 36, 32, .06), 0 8px 24px -12px rgba(26, 36, 32, .12);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1512; --panel: #16211c; --text: #e6ebe8; --muted: #8fa098;
+    --accent: #4cc2a4; --accent-ink: #06231b; --accent-soft: #16332b;
+    --border: #24322b; --hairline: #2c3b34;
+    --user-bubble: #1d6b58; --user-text: #eaf5f1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+  }
+
   * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
   body {
-    font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg);
-    color: var(--text); height: 100vh; display: flex; flex-direction: column;
+    font-family: "Outfit", system-ui, sans-serif; background: var(--bg);
+    color: var(--text); height: 100dvh; display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
   }
+
   header {
-    padding: 14px 22px; background: var(--panel); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   }
-  header .logo {
-    width: 36px; height: 36px; border-radius: 10px; background: var(--accent);
-    color: #fff; display: grid; place-items: center; font-size: 18px;
+  .logo {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
+    color: var(--accent-ink); display: grid; place-items: center; flex-shrink: 0;
+    font-family: "Fraunces", serif; font-size: 15px; font-weight: 600; letter-spacing: .02em;
   }
-  header h1 { font-size: 16px; }
-  header p { font-size: 12px; color: var(--muted); }
-  #status { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .brand h1 { font-family: "Fraunces", serif; font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+  .brand p { font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .head-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  #status {
+    font-size: 11px; color: var(--muted); display: none; align-items: center; gap: 5px;
+    padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap;
+  }
+  #status.on { display: inline-flex; }
+  #status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  #status.warn .dot { background: var(--warn); }
+  .iconbtn {
+    width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 15px; cursor: pointer;
+    display: grid; place-items: center; padding: 0;
+  }
+  .iconbtn:hover { border-color: var(--accent); }
+  .iconbtn:focus-visible, button:focus-visible, input:focus-visible,
+  .hints span:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
   #chat {
-    flex: 1; overflow-y: auto; padding: 22px; display: flex;
-    flex-direction: column; gap: 12px; max-width: 860px; width: 100%; margin: 0 auto;
+    flex: 1; overflow-y: auto; padding: 18px 16px 8px; display: flex;
+    flex-direction: column; gap: 12px; max-width: 920px; width: 100%; margin: 0 auto;
+    scroll-behavior: smooth;
   }
-  .msg { max-width: 78%; padding: 11px 15px; border-radius: 14px; font-size: 14px;
-         line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }
+  .msg {
+    flex-shrink: 0;
+    max-width: 82%; padding: 11px 15px; border-radius: 16px; font-size: 14px;
+    line-height: 1.55; white-space: pre-wrap; overflow-wrap: break-word;
+    animation: rise .22s ease both;
+  }
   .msg.user { align-self: flex-end; background: var(--user-bubble); color: var(--user-text);
               border-bottom-right-radius: 4px; }
   .msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--border);
              border-bottom-left-radius: 4px; }
   .msg.bot strong { color: var(--accent); }
-  .typing { align-self: flex-start; color: var(--muted); font-size: 13px; padding: 4px 8px; }
-  form {
-    display: flex; gap: 10px; padding: 16px 22px 20px; max-width: 860px;
-    width: 100%; margin: 0 auto;
+  .msg .stamp { display: block; font-size: 10px; color: var(--muted); margin-top: 6px; opacity: .8; }
+  .msg.user .stamp { color: var(--user-text); opacity: .6; }
+  .msg.err { border-color: var(--warn); }
+  .msg .retry {
+    margin-top: 8px; display: inline-block; border: 1px solid var(--warn); background: none;
+    color: var(--warn); border-radius: 8px; padding: 5px 12px; font-size: 12px;
+    font-family: inherit; cursor: pointer;
   }
-  input {
-    flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border);
-    background: var(--panel); color: var(--text); font-size: 14px; outline: none;
+
+  .msg.bot.clamp { position: relative; }
+  .msg.bot.clamp .body { max-height: 132px; overflow: hidden; }
+  .msg.bot.clamp .body::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 34px; height: 48px;
+    background: linear-gradient(transparent, var(--panel));
   }
-  input:focus { border-color: var(--accent); }
-  button {
-    padding: 12px 22px; border-radius: 12px; border: none; background: var(--accent);
-    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  .msg .more {
+    display: none; margin-top: 6px; border: none; background: none; color: var(--accent);
+    font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;
   }
-  button:disabled { opacity: .5; cursor: default; }
-  .hints { max-width: 860px; margin: 0 auto; padding: 0 22px 10px; display: flex;
-           gap: 8px; flex-wrap: wrap; }
+  .msg.bot.clamp .more, .msg.bot.clamped-open .more { display: inline-block; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .typing { align-self: flex-start; display: flex; gap: 5px; padding: 12px 16px;
+            background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+            border-bottom-left-radius: 4px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+              animation: blink 1.2s infinite both; }
+  .typing i:nth-child(2) { animation-delay: .15s; }
+  .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+  /* ---- Listing cards ---- */
+  .cards {
+    flex-shrink: 0;
+    display: grid; grid-auto-flow: column; grid-auto-columns: min(80%, 300px);
+    gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 10px;
+    max-width: 100%; -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width: 760px) {
+    .cards { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+             grid-auto-columns: unset; overflow-x: visible; }
+  }
+  .card {
+    scroll-snap-align: start; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    box-shadow: var(--shadow); animation: rise .25s ease both;
+  }
+  .card:nth-child(2) { animation-delay: .06s; }
+  .card:nth-child(3) { animation-delay: .12s; }
+  .card .no {
+    font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .card h3 { font-family: "Fraunces", serif; font-size: 17px; font-weight: 600; line-height: 1.25; }
+  .card .price {
+    font-family: "Fraunces", serif; font-size: 22px; font-weight: 600; color: var(--accent);
+    font-variant-numeric: tabular-nums; border-top: 1px solid var(--hairline); padding-top: 8px;
+  }
+  .card .specs { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .card .dev { font-size: 11.5px; color: var(--muted); }
+  .card .dev b { color: var(--text); font-weight: 500; }
+  .card .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .card .tags span {
+    font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px;
+    border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap;
+  }
+  .card details { font-size: 12.5px; color: var(--muted); }
+  .card summary { cursor: pointer; color: var(--accent); font-weight: 500; font-size: 12px; }
+  .card details[open] summary { margin-bottom: 6px; }
+  .card details div { max-height: 150px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
+  .card .actions { display: flex; gap: 8px; margin-top: auto; }
+  .card .actions button {
+    flex: 1; padding: 9px 4px; border-radius: 10px; font-size: 12.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .card .actions .book { border: none; background: var(--accent); color: var(--accent-ink); }
+  .card .actions .ask { border: 1px solid var(--border); background: none; color: var(--text); }
+  .card .actions .ask:hover, .card .actions .book:hover { filter: brightness(1.08); }
+
+  .composer { flex-shrink: 0; background: var(--bg); padding-bottom: env(safe-area-inset-bottom); }
+  .hints { max-width: 920px; margin: 0 auto; padding: 6px 16px 8px; display: flex;
+           gap: 8px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .hints span {
-    font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
     background: var(--accent-soft); color: var(--accent); border: 1px solid transparent;
   }
   .hints span:hover { border-color: var(--accent); }
+  form {
+    display: flex; gap: 8px; padding: 4px 16px 14px; max-width: 920px; width: 100%; margin: 0 auto;
+  }
+  input {
+    flex: 1; min-width: 0; padding: 12px 16px; border-radius: 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 16px; font-family: inherit; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  #send {
+    width: 46px; border-radius: 14px; border: none; background: var(--accent);
+    color: var(--accent-ink); font-size: 18px; cursor: pointer; flex-shrink: 0;
+  }
+  #send:disabled { opacity: .5; cursor: default; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .msg, .card { animation: none; }
+    #chat { scroll-behavior: auto; }
+  }
 </style>
 </head>
 <body>
   <header>
-    <div class="logo">🏠</div>
-    <div>
+    <div class="logo">SL</div>
+    <div class="brand">
       <h1>Silver Land Properties</h1>
-      <p>AI property assistant — search, ask, book a site visit</p>
+      <p>AI property concierge</p>
     </div>
-    <span id="status"></span>
+    <div class="head-actions">
+      <span id="status"><span class="dot"></span><span id="status-text"></span></span>
+      <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle dark mode">◐</button>
+      <button class="iconbtn" id="reset" title="New chat" aria-label="Start a new chat">✚</button>
+    </div>
   </header>
 
-  <div id="chat"></div>
+  <div id="chat" aria-live="polite"></div>
 
-  <div class="hints" id="hints">
-    <span>I want a 3 bhk in Dubai under 800000</span>
-    <span>What amenities do they have?</span>
-    <span>Book a site visit</span>
-    <span>Cancel my booking</span>
+  <div class="composer">
+    <div class="hints" id="hints"></div>
+    <form id="form">
+      <input id="input" placeholder="Ask about budget, city, amenities…" autocomplete="off" autofocus aria-label="Message">
+      <button id="send" type="submit" aria-label="Send">↑</button>
+    </form>
   </div>
-
-  <form id="form">
-    <input id="input" placeholder="Type a message…" autocomplete="off" autofocus>
-    <button id="send" type="submit">Send</button>
-  </form>
 
 <script>
 const chat = document.getElementById("chat");
 const form = document.getElementById("form");
 const input = document.getElementById("input");
 const send = document.getElementById("send");
+const hintsEl = document.getElementById("hints");
 const statusEl = document.getElementById("status");
-let conversationId = null;
 
-function esc(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const STORE = "slp_ui_v2";
+const GREETING = "Hello! I'm the Silver Land Properties concierge. Tell me your budget and preferred city, and I'll shortlist matching properties. 🏙️";
+const fmtUSD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+let state = { cid: null, msgs: [] };
+try { state = JSON.parse(localStorage.getItem(STORE)) || state; } catch (e) {}
+
+function saveState() {
+  state.msgs = state.msgs.slice(-40);
+  try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
 }
 
-function addMsg(text, who) {
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function pretty(s) {
+  return s.replace(/_/g, " ").split(" ")
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+function parseTags(raw) {
+  // features/facilities arrive as numpy-ish strings: "['24h_security' \"Maid's Room\"]"
+  if (!raw) return [];
+  const out = []; const re = /'([^']+)'|"([^"]+)"/g; let m;
+  while ((m = re.exec(raw)) !== null) out.push(pretty(m[1] || m[2]));
+  return out;
+}
+function flag(cc) {
+  if (!cc || cc.length !== 2) return "";
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0)));
+}
+function stampNow() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function addMsg(text, who, opts = {}) {
   const div = document.createElement("div");
   div.className = "msg " + who;
-  // minimal markdown: **bold** only, everything else escaped
-  div.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const body = document.createElement("span");
+  body.className = "body";
+  body.innerHTML = esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  div.appendChild(body);
+
+  if (who === "bot" && text.length > 600) {
+    div.classList.add("clamp");
+    const more = document.createElement("button");
+    more.className = "more"; more.type = "button"; more.textContent = "Read full details";
+    more.onclick = () => {
+      const open = div.classList.toggle("clamp");
+      div.classList.toggle("clamped-open", !open);
+      more.textContent = open ? "Read full details" : "Show less";
+    };
+    div.appendChild(more);
+  }
+
+  if (opts.retryText) {
+    div.classList.add("err");
+    const retry = document.createElement("button");
+    retry.className = "retry"; retry.type = "button"; retry.textContent = "↻ Try again";
+    retry.onclick = () => { div.remove(); sendMessage(opts.retryText); };
+    div.appendChild(retry);
+  }
+
+  const stamp = document.createElement("span");
+  stamp.className = "stamp"; stamp.textContent = opts.stamp || stampNow();
+  div.appendChild(stamp);
+
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
   return div;
 }
 
+function addCards(projects) {
+  if (!projects || !projects.length) return;
+  const rail = document.createElement("div");
+  rail.className = "cards";
+  projects.forEach((p, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+
+    const no = document.createElement("div");
+    no.className = "no";
+    no.textContent = `№ ${i + 1} · ${p.city || ""} ${flag(p.country)}`.trim();
+    card.appendChild(no);
+
+    const h3 = document.createElement("h3");
+    h3.textContent = p.project_name;
+    card.appendChild(h3);
+
+    if (p.price_usd) {
+      const price = document.createElement("div");
+      price.className = "price"; price.textContent = fmtUSD.format(p.price_usd);
+      card.appendChild(price);
+    }
+
+    const specs = document.createElement("div");
+    specs.className = "specs";
+    const bits = [];
+    if (p.bedrooms) bits.push(`${p.bedrooms} bed`);
+    if (p.bathrooms) bits.push(`${p.bathrooms} bath`);
+    if (p.area_sqm) bits.push(`${p.area_sqm} m²`);
+    if (p.property_type) bits.push(pretty(p.property_type));
+    specs.textContent = bits.join(" · ");
+    card.appendChild(specs);
+
+    if (p.developer) {
+      const dev = document.createElement("div");
+      dev.className = "dev";
+      dev.append("by ");
+      const b = document.createElement("b"); b.textContent = p.developer;
+      dev.appendChild(b);
+      card.appendChild(dev);
+    }
+
+    const tags = parseTags(p.features).concat(parseTags(p.facilities));
+    if (tags.length) {
+      const tagWrap = document.createElement("div");
+      tagWrap.className = "tags";
+      tags.slice(0, 5).forEach(t => {
+        const s = document.createElement("span"); s.textContent = t; tagWrap.appendChild(s);
+      });
+      if (tags.length > 5) {
+        const s = document.createElement("span"); s.textContent = `+${tags.length - 5}`; tagWrap.appendChild(s);
+      }
+      card.appendChild(tagWrap);
+    }
+
+    if (p.description) {
+      const det = document.createElement("details");
+      const sum = document.createElement("summary"); sum.textContent = "About this property";
+      const txt = document.createElement("div"); txt.textContent = p.description;
+      det.append(sum, txt);
+      card.appendChild(det);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const book = document.createElement("button");
+    book.className = "book"; book.type = "button"; book.textContent = "Book site visit";
+    book.onclick = () => sendMessage(`Book a site visit for ${p.project_name}`);
+    const ask = document.createElement("button");
+    ask.className = "ask"; ask.type = "button"; ask.textContent = "Amenities";
+    ask.onclick = () => sendMessage(`What amenities does ${p.project_name} have?`);
+    actions.append(book, ask);
+    card.appendChild(actions);
+
+    rail.appendChild(card);
+  });
+  chat.appendChild(rail);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+/* ---- hints ---- */
+const HINTS_START = ["I want a 3 bhk in Dubai under 800000", "Apartments in Phuket", "My budget is 500000"];
+const HINTS_AFTER = ["Book a site visit", "What amenities do they have?", "Show me cheaper options", "Cancel my booking"];
+function setHints(list) {
+  hintsEl.innerHTML = "";
+  list.forEach(t => {
+    const s = document.createElement("span");
+    s.textContent = t; s.tabIndex = 0;
+    s.onclick = () => sendMessage(t);
+    s.onkeydown = e => { if (e.key === "Enter") sendMessage(t); };
+    hintsEl.appendChild(s);
+  });
+}
+
+/* ---- chat plumbing ---- */
 async function ensureConversation() {
-  if (conversationId) return conversationId;
+  if (state.cid) return state.cid;
   const res = await fetch("/conversations", { method: "POST" });
-  conversationId = (await res.json()).conversation_id;
-  return conversationId;
+  state.cid = (await res.json()).conversation_id;
+  saveState();
+  return state.cid;
 }
 
 async function sendMessage(text) {
   addMsg(text, "user");
+  state.msgs.push({ w: "user", t: text, s: stampNow() });
+  saveState();
   input.value = "";
   send.disabled = true;
   const typing = document.createElement("div");
   typing.className = "typing";
-  typing.textContent = "Assistant is thinking…";
+  typing.innerHTML = "<i></i><i></i><i></i>";
   chat.appendChild(typing);
   chat.scrollTop = chat.scrollHeight;
   try {
@@ -139,38 +435,77 @@ async function sendMessage(text) {
     });
     typing.remove();
     if (res.status === 429) {
-      addMsg("You're sending messages too quickly — give me a few seconds.", "bot");
+      addMsg("You're sending messages too quickly — give me a few seconds and try again.", "bot");
       return;
     }
+    if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    addMsg(data.reply || "Sorry, something went wrong.", "bot");
+    const reply = data.reply || "Sorry, something went wrong.";
+    addMsg(reply, "bot");
+    addCards(data.shortlisted_projects);
+    state.msgs.push({ w: "bot", t: reply, p: data.shortlisted_projects || [], s: stampNow() });
+    saveState();
+    if (data.shortlisted_projects && data.shortlisted_projects.length) setHints(HINTS_AFTER);
   } catch (e) {
     typing.remove();
-    addMsg("Couldn't reach the server. Is the API running?", "bot");
+    addMsg("Couldn't reach the server — it may be waking up.", "bot", { retryText: text });
   } finally {
     send.disabled = false;
     input.focus();
   }
 }
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", e => {
   e.preventDefault();
   const text = input.value.trim();
   if (text) sendMessage(text);
 });
 
-document.getElementById("hints").addEventListener("click", (e) => {
-  if (e.target.tagName === "SPAN") sendMessage(e.target.textContent);
+/* ---- new chat ---- */
+document.getElementById("reset").addEventListener("click", () => {
+  state = { cid: null, msgs: [] };
+  saveState();
+  chat.innerHTML = "";
+  setHints(HINTS_START);
+  addMsg(GREETING, "bot");
+  input.focus();
 });
 
-fetch("/health").then(r => r.json()).then(h => {
-  statusEl.textContent = h.llm === "ok"
-    ? "● LLM connected"
-    : "● LLM offline — using fallback replies";
-  statusEl.style.color = h.llm === "ok" ? "#2e9e6b" : "#c98a1b";
-}).catch(() => { statusEl.textContent = ""; });
+/* ---- theme toggle ---- */
+const themeBtn = document.getElementById("theme");
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+themeBtn.addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem(STORE + "_theme", next); } catch (e) {}
+});
+try { applyTheme(localStorage.getItem(STORE + "_theme")); } catch (e) {}
 
-addMsg("Hello! I'm the Silver Land Properties assistant. Tell me your budget and preferred city, and I'll find matching properties. 🏙️", "bot");
+/* ---- health pill ---- */
+fetch("/health").then(r => r.json()).then(h => {
+  const ok = h.llm === "ok";
+  statusEl.classList.add("on");
+  statusEl.classList.toggle("warn", !ok);
+  document.getElementById("status-text").textContent = ok ? "Live" : "Fallback mode";
+}).catch(() => {});
+
+/* ---- restore or greet ---- */
+if (state.msgs.length) {
+  let sawCards = false;
+  state.msgs.forEach(m => {
+    addMsg(m.t, m.w, { stamp: m.s });
+    if (m.p && m.p.length) { addCards(m.p); sawCards = true; }
+  });
+  setHints(sawCards ? HINTS_AFTER : HINTS_START);
+} else {
+  setHints(HINTS_START);
+  addMsg(GREETING, "bot");
+}
 </script>
 </body>
 </html>
