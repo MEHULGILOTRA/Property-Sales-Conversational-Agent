@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/MEHULGILOTRA/Property-Sales-Conversational-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/MEHULGILOTRA/Property-Sales-Conversational-Agent/actions/workflows/ci.yml)
 
+**🔴 Live demo: [property-sales-agent.onrender.com](https://property-sales-agent.onrender.com)** — no sign-up, just open and chat.
+
 A LangGraph-powered real-estate sales assistant. It understands budgets, cities, BHK and
 feature preferences in natural language, searches a property database, shortlists the best
 matches with an LLM, and walks the user through booking a site visit — capturing their
